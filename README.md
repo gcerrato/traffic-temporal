@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Traffic Delay Monitor
 
-## Getting Started
+A Next.js application that monitors traffic delays on freight delivery routes using Temporal workflows. The app provides a UI for entering delivery routes and displays real-time workflow progress with notifications for significant delays.
 
-First, run the development server:
+## Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 18+ and pnpm
+- Docker and Docker Compose (for Temporal server)
+- OpenAI API key
+- Google Maps API key
+- SendGrid API key
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Install dependencies**:
+   ```bash
+   pnpm install
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Create environment file**
 
-## Learn More
+   ```
+   Use the .env.example as base
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+3. **Start Temporal server**:
+   ```bash
+   docker-compose up -d
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Start the Temporal worker** (in a separate terminal):
+   ```bash
+   pnpm worker
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. **Start the Next.js development server**:
+   ```bash
+   pnpm dev
+   ```
 
-## Deploy on Vercel
+6. **Open your browser** and navigate to `http://localhost:3000`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Services
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The docker-compose setup includes:
+- **PostgreSQL**: Database for Temporal
+- **Temporal**: Workflow orchestration server
+- **Temporal UI**: Web interface at `http://localhost:8080`
+- **Temporal Admin Tools**: CLI tools for management
+
+## How it Works
+
+1. **Route Input**: Users enter origin, destination, and delay threshold
+2. **Workflow Start**: Server action starts a Temporal workflow
+3. **Traffic Check**: Google Maps API provides real traffic data
+4. **Delay Calculation**: Computes actual delay based on traffic conditions
+5. **AI Message Generation**: OpenAI generates custom delay messages
+6. **Email Notification**: SendGrid sends professional email alerts
+7. **Real-time Updates**: UI polls for workflow status updates every 3 seconds
+
+## Architecture
+
+- **Frontend**: Next.js 15 with React 19
+- **Backend**: Next.js server actions for workflow management
+- **Workflow Engine**: Temporal for reliable workflow orchestration
+- **External APIs**: OpenAI for message generation, Google Maps for traffic data, SendGrid for email
+- **Database**: PostgreSQL (via Docker Compose)
+
+## Server Actions
+
+- `startTrafficWorkflow` - Start a new traffic monitoring workflow
+- `getWorkflows` - Get all workflow statuses
+
+## Temporal Workflow
+
+The `TrafficDelayWorkflow` consists of four independent activities:
+
+1. `checkTrafficConditions` - Google Maps API for real traffic data
+2. `calculateDelay` - Computes delay based on traffic vs normal conditions
+3. `generateNotificationMessage` - OpenAI generates custom delay messages
+4. `sendNotification` - SendGrid sends professional email notifications
